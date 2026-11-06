@@ -1,0 +1,31 @@
+---
+- name: Build Vaultwarden
+  hosts: vaultwarden
+  become: true
+  tasks:
+    - name: Build Vaultwarden
+      ansible.builtin.command:
+        cmd: "{{ cargo_home }}/bin/cargo build --release --features {{ vaultwarden_features | join(',') }}"
+      args:
+        chdir: "{{ vaultwarden_source_dir }}"
+      environment:
+        CARGO_HOME: "{{ cargo_home }}"
+        RUSTUP_HOME: "{{ rustup_home }}"
+      become_user: "{{ vaultwarden_user }}"
+      changed_when: true
+    - name: Verify Vaultwarden binary
+      ansible.builtin.stat:
+        path: "{{ vaultwarden_source_dir }}/target/release/vaultwarden"
+      register: vaultwarden_binary_stat
+    - name: Fail if Vaultwarden binary was not created
+      ansible.builtin.fail:
+        msg: "Vaultwarden binary was not created."
+      when: not vaultwarden_binary_stat.stat.exists
+    - name: Install Vaultwarden binary
+      ansible.builtin.copy:
+        src: "{{ vaultwarden_source_dir }}/target/release/vaultwarden"
+        dest: "{{ vaultwarden_binary }}"
+        owner: "{{ vaultwarden_user }}"
+        group: "{{ vaultwarden_group }}"
+        mode: "0755"
+        remote_src: true

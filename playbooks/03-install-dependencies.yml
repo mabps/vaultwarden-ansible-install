@@ -1,0 +1,43 @@
+---
+- name: Install Vaultwarden build dependencies
+  hosts: vaultwarden
+  become: true
+  tasks:
+    - name: Check Rust installation
+      ansible.builtin.stat:
+        path: "{{ cargo_home }}/bin/rustc"
+      register: rustc_binary
+    - name: Download rustup installer
+      ansible.builtin.get_url:
+        url: https://sh.rustup.rs
+        dest: /tmp/rustup.sh
+        mode: "0755"
+      when: not rustc_binary.stat.exists
+    - name: Install Rust
+      ansible.builtin.command:
+        cmd: "/tmp/rustup.sh -y --default-toolchain {{ rust_toolchain }} --profile minimal"
+      environment:
+        CARGO_HOME: "{{ cargo_home }}"
+        RUSTUP_HOME: "{{ rustup_home }}"
+      become_user: "{{ vaultwarden_user }}"
+      when: not rustc_binary.stat.exists
+    - name: Ensure Rust stable toolchain
+      ansible.builtin.command:
+        cmd: "{{ cargo_home }}/bin/rustup toolchain install {{ rust_toolchain }}"
+      environment:
+        CARGO_HOME: "{{ cargo_home }}"
+        RUSTUP_HOME: "{{ rustup_home }}"
+      become_user: "{{ vaultwarden_user }}"
+      changed_when: false
+    - name: Check Rust version
+      ansible.builtin.command:
+        cmd: "{{ cargo_home }}/bin/rustc --version"
+      environment:
+        CARGO_HOME: "{{ cargo_home }}"
+        RUSTUP_HOME: "{{ rustup_home }}"
+      become_user: "{{ vaultwarden_user }}"
+      register: rust_version
+      changed_when: false
+    - name: Show Rust version
+      ansible.builtin.debug:
+        var: rust_version.stdout

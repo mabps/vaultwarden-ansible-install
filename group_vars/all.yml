@@ -1,0 +1,133 @@
+---
+# ============================================================
+# Vaultwarden version
+# ============================================================
+# Fixed versions. Do NOT use latest for production.
+# Current project set kept from the previous configuration.
+vaultwarden_version: "1.37.4"
+vaultwarden_web_version: "v2026.4.1"
+
+vaultwarden_repository: "https://github.com/dani-garcia/vaultwarden.git"
+vaultwarden_web_ui_repository: "https://github.com/dani-garcia/bw_web_builds/releases/download/{{ vaultwarden_web_version }}/bw_web_{{ vaultwarden_web_version }}.tar.gz"
+
+# ============================================================
+# Admin panel
+# ============================================================
+# IMPORTANT:
+# This is NOT a username/password pair.
+# It is the ADMIN_TOKEN used to access:
+# https://vault.example.local/admin
+#
+# Put your own secret here directly, as requested.
+vaultwarden_admin_enabled: true
+vaultwarden_admin_token: "XXXXXXXXXXXXXXXXXX"
+
+# ============================================================
+# Users / invitations
+# Allow Users Auto Sign up in VaultWarden System
+# ============================================================
+vaultwarden_allow_signups: true
+vaultwarden_allow_invitations: true
+
+# ============================================================
+# Nginx
+# ============================================================
+nginx_enabled: true
+nginx_server_name: "vaultwarden.local"
+
+# Nginx listens on all IPv4 interfaces. This is intentional:
+# the server is reachable only through your internal network.
+nginx_http_port: 80
+nginx_https_port: 443
+
+# ============================================================
+# Vaultwarden network
+# ============================================================
+# Vaultwarden is local-only. Nginx is the network-facing service.
+vaultwarden_bind_address: "127.0.0.1"
+vaultwarden_port: 8000
+
+# IMPORTANT: this must be the HTTPS URL users will use.
+vaultwarden_domain: "https://{{nginx_server_name}}"
+
+
+# ============================================================
+# Linux service user
+# ============================================================
+vaultwarden_user: "vaultwarden"
+vaultwarden_group: "vaultwarden"
+
+# ============================================================
+# Directories
+# ============================================================
+vaultwarden_install_dir: "/opt/vaultwarden"
+vaultwarden_data_dir: "/opt/vaultwarden/data"
+vaultwarden_source_dir: "/opt/vaultwarden/src"
+vaultwarden_web_dir: "/opt/vaultwarden/web-vault"
+vaultwarden_binary: "/opt/vaultwarden/bin/vaultwarden"
+
+
+# ============================================================
+# PostgreSQL
+# ============================================================
+# PostgreSQL is installed locally on the same server.
+postgresql_host: "127.0.0.1"
+postgresql_port: 5432
+postgresql_database: "vaultwarden"
+postgresql_user: "vaultwarden"
+
+# CHANGE THIS PASSWORD.
+postgresql_password: "XXXXXXXXXXXXXXXXXX"
+
+vaultwarden_database_url: "postgresql://{{ postgresql_user }}:{{ postgresql_password | urlencode }}@{{ postgresql_host }}:{{ postgresql_port }}/{{ postgresql_database }}"
+
+vaultwarden_database_max_connections: 10
+
+# ============================================================
+# Web Vault
+# ============================================================
+vaultwarden_web_vault_enabled: true
+vaultwarden_web_vault_folder: "/opt/vaultwarden/web-vault"
+
+# ============================================================
+# WebSocket
+# ============================================================
+vaultwarden_websocket_enabled: true
+vaultwarden_websocket_port: 3012
+
+# ============================================================
+# Logging
+# ============================================================
+vaultwarden_log_level: "info"
+vaultwarden_log_timestamp_format: "%Y-%m-%d %H:%M:%S"
+
+
+
+# ============================================================
+# TLS certificate from local CA
+# ============================================================
+# You will copy the certificate and key here later.
+vaultwarden_tls_enabled: true
+
+vaultwarden_tls_certificate: "/etc/nginx/ssl/{{nginx_server_name}}.crt"
+vaultwarden_tls_certificate_key: "/etc/nginx/ssl/{{nginx_server_name}}.key"
+
+# ============================================================
+# Firewall
+# ============================================================
+# Disabled intentionally. You have 20+ internal subnets and
+# network ACL/routing should control access.
+vaultwarden_firewall_enabled: false
+
+# ============================================================
+# Rust
+# ============================================================
+rustup_home: "/opt/vaultwarden/.rustup"
+cargo_home: "/opt/vaultwarden/.cargo"
+rust_toolchain: "stable"
+
+# ============================================================
+# Build features
+# ============================================================
+vaultwarden_features:
+  - postgresql

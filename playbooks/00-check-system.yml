@@ -1,0 +1,45 @@
+---
+- name: Check Vaultwarden server
+  hosts: vaultwarden
+  become: true
+
+  tasks:
+    - name: Verify that linux = Debian
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Debian"
+        fail_msg: "This playbook requires Debian, version 12 or higer"
+        success_msg: "Debian detected"
+
+    - name: Verify supported architecture
+      ansible.builtin.assert:
+        that:
+          - ansible_architecture in ['x86_64', 'aarch64']
+        fail_msg: "Unsupported architecture: {{ ansible_architecture }}"
+        success_msg: "Architecture {{ ansible_architecture }} is supported"
+
+    - name: Verify RAM
+      ansible.builtin.assert:
+        that:
+          - ansible_memtotal_mb >= 2048
+        fail_msg: "At least 2 GB RAM is required"
+        success_msg: "RAM is sufficient"
+
+    - name: Verify free disk space on /
+      ansible.builtin.assert:
+        that:
+          - ansible_mounts
+            | selectattr('mount', 'equalto', '/')
+            | map(attribute='size_available')
+            | first
+            | int >= 10737418240
+        fail_msg: "At least 10 GB free space is required on /"
+        success_msg: "Free disk space is sufficient"
+
+    - name: Show system information
+      ansible.builtin.debug:
+        msg:
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Architecture: {{ ansible_architecture }}"
+          - "RAM: {{ ansible_memtotal_mb }} MB"
+          - "CPU: {{ ansible_processor_vcpus }} vCPU"

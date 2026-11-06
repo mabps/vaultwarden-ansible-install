@@ -1,0 +1,46 @@
+---
+- name: Verify Vaultwarden installation
+  hosts: vaultwarden
+  become: true
+  tasks:
+    - name: Check PostgreSQL service
+      ansible.builtin.systemd:
+        name: postgresql
+      register: postgresql_service
+    - name: Check Vaultwarden service
+      ansible.builtin.systemd:
+        name: vaultwarden
+      register: vaultwarden_service
+    - name: Check Nginx service
+      ansible.builtin.systemd:
+        name: nginx
+      register: nginx_service
+    - name: Check Vaultwarden local port
+      ansible.builtin.wait_for:
+        host: "{{ vaultwarden_bind_address }}"
+        port: "{{ vaultwarden_port }}"
+        timeout: 10
+    - name: Check Vaultwarden local HTTP endpoint
+      ansible.builtin.uri:
+        url: "http://{{ vaultwarden_bind_address }}:{{ vaultwarden_port }}"
+        method: GET
+        status_code:
+          - 200
+          - 302
+          - 404
+        return_content: false
+    - name: Show final status
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "Vaultwarden installation completed"
+          - "=========================================="
+          - "PostgreSQL: {{ postgresql_service.status.ActiveState }}"
+          - "Vaultwarden: {{ vaultwarden_service.status.ActiveState }}"
+          - "Nginx: {{ nginx_service.status.ActiveState }}"
+          - "URL: {{ vaultwarden_domain }}"
+          - "Database: PostgreSQL {{ postgresql_host }}:{{ postgresql_port }}/{{ postgresql_database }}"
+          - "Vaultwarden local: {{ vaultwarden_bind_address }}:{{ vaultwarden_port }}"
+          - "HTTPS: {{ nginx_server_name }}:{{ nginx_https_port }}"
+          - "HTTP redirects to HTTPS: enabled"
+          - "=========================================="

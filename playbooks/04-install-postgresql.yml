@@ -1,0 +1,72 @@
+---
+- name: Install and configure PostgreSQL for Vaultwarden
+  hosts: vaultwarden
+  become: true
+  tasks:
+    - name: Install PostgreSQL
+      ansible.builtin.apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+        state: present
+    - name: Enable PostgreSQL
+      ansible.builtin.systemd:
+        name: postgresql
+        enabled: true
+        state: started
+    - name: Create Vaultwarden PostgreSQL role
+      become_user: postgres
+      ansible.builtin.shell: |
+        set -e
+        if psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ postgresql_user }}'" | grep -q 1; then
+          psql -c "ALTER ROLE {{ postgresql_user }} WITH LOGIN PASSWORD '{{ postgresql_password | replace("'", "''") }}';"
+        else
+          psql -c "CREATE ROLE {{ postgresql_user }} WITH LOGIN PASSWORD '{{ postgresql_password | replace("'", "''") }}';"
+        fi
+      args:
+        executable: /bin/bash
+      no_log: true
+      changed_when: true
+    - name: Check whether Vaultwarden database exists
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: psql -tAc "SELECT 1 FROM pg_database WHERE datname='{{ postgresql_database }}'"
+      register: vaultwarden_database_exists
+      changed_when: false
+    - name: Create Vaultwarden database
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: createdb -O "{{ postgresql_user }}" "{{ postgresql_database }}"
+      when: vaultwarden_database_exists.stdout | trim != "1"
+    - name: Find PostgreSQL configuration files
+      ansible.builtin.find:
+        paths: /etc/postgresql
+        patterns:
+          - postgresql.conf
+          - pg_hba.conf
+        recurse: true
+        file_type: file
+      register: postgresql_config_files
+    - name: Restrict PostgreSQL to localhost
+      ansible.builtin.lineinfile:
+        path: "{{ item.path }}"
+        regexp: '^#?listen_addresses\\s*='
+        line: "listen_addresses = '127.0.0.1'"
+        backup: true
+      loop: "{{ postgresql_config_files.files }}"
+      when: item.path is search('/postgresql\\.conf$')
+      notify: Restart PostgreSQL
+    - name: Configure PostgreSQL password authentication
+      ansible.builtin.lineinfile:
+        path: "{{ item.path }}"
+        regexp: '^host\\s+{{ postgresql_database | regex_escape }}\\s+{{ postgresql_user | regex_escape }}\\s+127\\.0\\.0\\.1/32'
+        line: "host    {{ postgresql_database }}    {{ postgresql_user }}    127.0.0.1/32    scram-sha-256"
+        insertafter: EOF
+      loop: "{{ postgresql_config_files.files }}"
+      when: item.path is search('/pg_hba\\.conf$')
+      notify: Restart PostgreSQL
+  handlers:
+    - name: Restart PostgreSQL
+      ansible.builtin.systemd:
+        name: postgresql
+        state: restarted

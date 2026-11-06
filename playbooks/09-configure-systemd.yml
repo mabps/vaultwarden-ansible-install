@@ -1,0 +1,23 @@
+---
+- name: Configure Vaultwarden systemd service
+  hosts: vaultwarden
+  become: true
+
+  tasks:
+    - name: Install Vaultwarden systemd service
+      ansible.builtin.template:
+        src: vaultwarden.service.j2
+        dest: /etc/systemd/system/vaultwarden.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Enable and start Vaultwarden
+      ansible.builtin.systemd:
+        name: vaultwarden
+        enabled: true
+        state: started

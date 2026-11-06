@@ -1,0 +1,44 @@
+---
+- name: Install Vaultwarden Web Vault
+  hosts: vaultwarden
+  become: true
+
+  tasks:
+    - name: Download fixed Web Vault release
+      ansible.builtin.get_url:
+        url: "{{vaultwarden_web_ui_repository}}"
+        dest: "/tmp/vaultwarden-web-vault.tar.gz"
+        mode: "0644"
+      when: vaultwarden_web_vault_enabled
+
+    - name: Remove existing Web Vault
+      ansible.builtin.file:
+        path: "{{ vaultwarden_web_dir }}"
+        state: absent
+      when: vaultwarden_web_vault_enabled
+
+    - name: Create Web Vault directory
+      ansible.builtin.file:
+        path: "{{ vaultwarden_web_dir }}"
+        state: directory
+        owner: "{{ vaultwarden_user }}"
+        group: "{{ vaultwarden_group }}"
+        mode: "0755"
+      when: vaultwarden_web_vault_enabled
+
+    - name: Extract Web Vault
+      ansible.builtin.unarchive:
+        src: "/tmp/vaultwarden-web-vault.tar.gz"
+        dest: "{{ vaultwarden_web_dir }}"
+        remote_src: true
+        extra_opts:
+          - "--strip-components=1"
+        owner: "{{ vaultwarden_user }}"
+        group: "{{ vaultwarden_group }}"
+      when: vaultwarden_web_vault_enabled
+
+    - name: Remove Web Vault archive
+      ansible.builtin.file:
+        path: "/tmp/vaultwarden-web-vault.tar.gz"
+        state: absent
+      when: vaultwarden_web_vault_enabled

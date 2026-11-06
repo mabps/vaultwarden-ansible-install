@@ -1,0 +1,25 @@
+---
+- name: Download Vaultwarden source
+  hosts: vaultwarden
+  become: true
+  tasks:
+    - name: Remove old source directory
+      ansible.builtin.file:
+        path: "{{ vaultwarden_source_dir }}"
+        state: absent
+    - name: Create source directory
+      ansible.builtin.file:
+        path: "{{ vaultwarden_source_dir }}"
+        state: directory
+        owner: "{{ vaultwarden_user }}"
+        group: "{{ vaultwarden_group }}"
+        mode: "0750"
+    - name: Clone Vaultwarden repository
+      ansible.builtin.git:
+        repo: "{{ vaultwarden_repository }}"
+        dest: "{{ vaultwarden_source_dir }}"
+        version: "{{ vaultwarden_version }}"
+        depth: 1
+        update: false
+        force: true
+      become_user: "{{ vaultwarden_user }}"

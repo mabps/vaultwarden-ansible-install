@@ -1,0 +1,83 @@
+---
+- name: Configure Nginx for Vaultwarden
+  hosts: vaultwarden
+  become: true
+  tasks:
+    - name: Install Nginx
+      ansible.builtin.apt:
+        name:
+          - nginx
+        state: present
+      when: nginx_enabled
+    - name: Create Nginx SSL directory
+      ansible.builtin.file:
+        path: /etc/nginx/ssl
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      when: nginx_enabled
+
+    - name: Generate SSL self signet certificate
+      ansible.builtin.shell:
+        cmd: |
+          openssl req -x509 -nodes -days 3650 -newkey rsa:4096 \
+            -keyout "{{ vaultwarden_tls_certificate_key }}" \
+            -out "{{ vaultwarden_tls_certificate }}" \
+            -subj "/CN={{ nginx_server_name }}" \
+            -addext "subjectAltName = DNS:{{ nginx_server_name }},IP:{{ ansible_default_ipv4.address }}"
+        creates: "{{ vaultwarden_tls_certificate }}"
+
+    - name: Check TLS certificate exists
+      ansible.builtin.stat:
+        path: "{{ vaultwarden_tls_certificate }}"
+      register: vaultwarden_tls_certificate_stat
+      when:
+        - nginx_enabled
+        - vaultwarden_tls_enabled
+    - name: Check TLS private key exists
+      ansible.builtin.stat:
+        path: "{{ vaultwarden_tls_certificate_key }}"
+      register: vaultwarden_tls_key_stat
+      when:
+        - nginx_enabled
+        - vaultwarden_tls_enabled
+    - name: Stop if TLS files are missing
+      ansible.builtin.fail:
+        msg: "TLS files are required before Nginx can be configured: {{ vaultwarden_tls_certificate }} {{ vaultwarden_tls_certificate_key }}"
+      when:
+        - nginx_enabled
+        - vaultwarden_tls_enabled
+        - not vaultwarden_tls_certificate_stat.stat.exists or not vaultwarden_tls_key_stat.stat.exists
+    - name: Install Nginx configuration
+      ansible.builtin.template:
+        src: nginx-vaultwarden.conf.j2
+        dest: /etc/nginx/sites-available/vaultwarden.conf
+        owner: root
+        group: root
+        mode: "0644"
+      when: nginx_enabled
+      notify: Restart Nginx
+    - name: Enable Vaultwarden Nginx configuration
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/vaultwarden.conf
+        dest: /etc/nginx/sites-enabled/vaultwarden.conf
+        state: link
+      when: nginx_enabled
+      notify: Restart Nginx
+    - name: Remove default Nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      when: nginx_enabled
+      notify: Restart Nginx
+    - name: Test Nginx configuration
+      ansible.builtin.command:
+        cmd: nginx -t
+      changed_when: false
+      when: nginx_enabled
+  handlers:
+    - name: Restart Nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted

@@ -1,0 +1,13 @@
+---
+- import_playbook: playbooks/00-check-system.yml
+- import_playbook: playbooks/01-prepare-os.yml
+- import_playbook: playbooks/02-create-user-and-directories.yml
+- import_playbook: playbooks/03-install-dependencies.yml
+- import_playbook: playbooks/04-install-postgresql.yml
+- import_playbook: playbooks/05-download-sources.yml
+- import_playbook: playbooks/06-build-vaultwarden.yml
+- import_playbook: playbooks/07-install-web-vault.yml
+- import_playbook: playbooks/08-configure-vaultwarden.yml
+- import_playbook: playbooks/09-configure-systemd.yml
+- import_playbook: playbooks/10-configure-nginx.yml
+- import_playbook: playbooks/11-verify-installation.yml

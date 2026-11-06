@@ -1,0 +1,20 @@
+---
+- name: Configure Vaultwarden
+  hosts: vaultwarden
+  become: true
+  tasks:
+    - name: Create Vaultwarden environment file
+      ansible.builtin.template:
+        src: vaultwarden.env.j2
+        dest: "{{ vaultwarden_install_dir }}/vaultwarden.env"
+        owner: "{{ vaultwarden_user }}"
+        group: "{{ vaultwarden_group }}"
+        mode: "0600"
+      no_log: false
+    - name: Ensure data directory permissions
+      ansible.builtin.file:
+        path: "{{ vaultwarden_data_dir }}"
+        state: directory
+        owner: "{{ vaultwarden_user }}"
+        group: "{{ vaultwarden_group }}"
+        mode: "0750"

@@ -1,0 +1,40 @@
+---
+- name: Create Vaultwarden user and directories
+  hosts: vaultwarden
+  become: true
+  tasks:
+    - name: Create Vaultwarden group
+      ansible.builtin.group:
+        name: "{{ vaultwarden_group }}"
+        system: true
+        state: present
+    - name: Create Vaultwarden user
+      ansible.builtin.user:
+        name: "{{ vaultwarden_user }}"
+        group: "{{ vaultwarden_group }}"
+        system: true
+        shell: /usr/sbin/nologin
+        home: "{{ vaultwarden_install_dir }}"
+        create_home: false
+        state: present
+    - name: Create Vaultwarden directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ vaultwarden_user }}"
+        group: "{{ vaultwarden_group }}"
+        mode: "0750"
+      loop:
+        - "{{ vaultwarden_install_dir }}"
+        - "{{ vaultwarden_data_dir }}"
+        - "{{ vaultwarden_source_dir }}"
+        - "{{ vaultwarden_install_dir }}/bin"
+        - "{{ cargo_home }}"
+        - "{{ rustup_home }}"
+    - name: Create Web Vault directory
+      ansible.builtin.file:
+        path: "{{ vaultwarden_web_dir }}"
+        state: directory
+        owner: "{{ vaultwarden_user }}"
+        group: "{{ vaultwarden_group }}"
+        mode: "0755"

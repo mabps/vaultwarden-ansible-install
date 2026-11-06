@@ -1,0 +1,38 @@
+---
+- name: Prepare Debian 13 for Vaultwarden
+  hosts: vaultwarden
+  become: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+    - name: Upgrade installed packages
+      ansible.builtin.apt:
+        upgrade: safe
+    - name: Install basic packages
+      ansible.builtin.apt:
+        name:
+          - acl
+          - ca-certificates
+          - curl
+          - wget
+          - git
+          - unzip
+          - tar
+          - gzip
+          - sudo
+          - openssl
+          - gnupg
+          - apt-transport-https
+          - build-essential
+          - pkg-config
+          - python3-psycopg2
+          - libssl-dev
+          - libpq-dev
+          - libsqlite3-dev
+          - libmariadb-dev
+          - libzstd-dev
+          - zlib1g-dev
+          - git
+        state: present
